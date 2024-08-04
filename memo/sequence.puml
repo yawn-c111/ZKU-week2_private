@@ -1,0 +1,29 @@
+@startuml
+
+actor Alice
+participant AliceWallet as "Aliceの\nウォレット"
+participant AliceShieldKey as "Aliceの\nシールドキー"
+participant client as "クライアント"
+participant relayer as "リレーヤー"
+participant contract as "TornadoPool\nコントラクト"
+participant BobShieldKey as "Bobの\nシールドキー"
+participant BobWallet as "Bobの\nウォレット"
+actor Bob
+
+Alice -> AliceWallet: ウォレット接続
+AliceWallet -> client: ウォレット接続
+Alice -> AliceWallet: Aliceの\nシールドキーペア\n作成に署名
+AliceWallet -> client: Aliceの\nシールドキーペア\n作成に署名
+client -> AliceShieldKey: Aliceの\nシールドキーペア\nを作成する
+
+Alice -> client: 0.2ETHをTornadoCashに入金するUTXOを作成
+Alice -> AliceWallet: 署名
+AliceWallet -> client: UTXOのプルーフを作成
+client -> relayer: UTXOのプルーフを送信
+relayer -> relayer: 20回確認
+relayer -> contract: omniBridgeに送金するTxを実行
+
+
+Alice -> client: 0.2ETHをボブのアドレスに送るためのTxを作成
+
+@enduml
