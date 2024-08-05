@@ -27,8 +27,8 @@ template CheckRoot(n) { // compute the root of a MerkleTree of n Levels
         
         if (n > 1) {
             var newCount = 0;
-            for (var i = n - 1; i > 0; i--) { // n = 3 のとき、 i = 2 , 1
-                for (var j = 0; j < 2**i; j += 2) { // j = 0 のとき、 j = 0のみ
+            for (var i = n - 1; i > 0; i--) {
+                for (var j = 0; j < 2**i; j += 2) {
                     poseidons[count] = Poseidon(2);
                     var tmpCount = newCount+j;
                     poseidons[count].inputs[0] <== hashers[tmpCount];
