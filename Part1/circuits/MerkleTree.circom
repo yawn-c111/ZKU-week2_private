@@ -8,40 +8,41 @@ template CheckRoot(n) { // compute the root of a MerkleTree of n Levels
     signal output root;
 
     //[assignment] insert your code here to calculate the Merkle root from 2^n leaves
+    // リーフハッシュ以外のマークルパスの数
     var hashersLength = 2**n - 1;
-    var hashers[hashersLength];
-    
+    // poseidonのコンポーネントの配列を用意
     component poseidons[hashersLength];
 
     if (n == 0) {
-        hashers[0] <== leaves[0];
+        // リーフハッシュが1つの場合はそのノードをルートとする
+        root <== leaves[0];
     } else {
+        // poseidons配列の何番目まで格納したか記録
         var count = 0;
+        // 深さnの部分を計算
         for (var i = 0; i < 2**n; i += 2) {
             poseidons[count] = Poseidon(2);
             poseidons[count].inputs[0] <== leaves[i];
             poseidons[count].inputs[1] <== leaves[i+1];
-            hashers[count] <== poseidons[count].out;
             count += 1;
         }
         
-        if (n > 1) {
-            var newCount = 0;
-            for (var i = n - 1; i > 0; i--) {
-                for (var j = 0; j < 2**i; j += 2) {
-                    poseidons[count] = Poseidon(2);
-                    var tmpCount = newCount+j;
-                    poseidons[count].inputs[0] <== hashers[tmpCount];
-                    poseidons[count].inputs[1] <== hashers[tmpCount+1];
-                    hashers[count] <== poseidons[count].out;
-                    newCount += 2;
-                    count += 1;
-                }
+        // 計算に使用したposeidons配列のidxを記録
+        var calculatedIndex = 0;
+        // 深さn-1から深さ1になるまで計算
+        for (var i = n - 1; i > 0; i--) {
+            for (var j = 0; j < 2**i; j += 2) {
+                poseidons[count] = Poseidon(2);
+                var tmpCountIdx = calculatedIndex+j;
+                poseidons[count].inputs[0] <== poseidons[tmpCountIdx].out;
+                poseidons[count].inputs[1] <== poseidons[tmpCountIdx+1].out;
+                calculatedIndex += 2;
+                count += 1;
             }
         }
     }
 
-    root === hashers[hashersLength - 1];
+    root === poseidons[hashersLength - 1];
 }
 
 template MerkleTreeInclusionProof(n) {

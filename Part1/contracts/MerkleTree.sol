@@ -8,26 +8,34 @@ contract MerkleTree is Groth16Verifier {
     uint256[] public hashes; // the Merkle tree in flattened array form
     uint256 public index = 0; // the current index of the first unfilled leaf
     uint256 public root; // the current Merkle root
+    uint256 public n = 3; // the number of levels in the Merkle tree
 
     constructor() {
         // [assignment] initialize a Merkle tree of 8 with blank leaves
-        hashes = [0, 0, 0, 0, 0, 0, 0, 0];
+        uint256 maxLeaf = 2**n;
+        for (uint256 i = 0; i < maxLeaf; i++) {
+            hashes.push(0);
+        }
     }
 
     function insertLeaf(uint256 hashedLeaf) public returns (uint256) {
         // [assignment] insert a hashed leaf into the Merkle tree
+        // 現在の空の葉のインデックス
         uint256 currentIndex = index;
-        require(currentIndex < 8, "Index out of bounds");
+        // 葉の最大数
+        uint256 maxLeaf = 2**n;
+        require(currentIndex < maxLeaf, "Index out of bounds");
 
+        // 新しい葉を追加
         hashes[currentIndex] = hashedLeaf;
 
-        uint256 count = 8;
-        uint256 newCount = 0;
-        for (uint256 i = 2; i > 0; i--) {
+        uint256 calculatedIndex = 0;
+        // 葉の深さが1になるまで各ブランチでハッシュを計算
+        uint256 count = n - 1;
+        for (uint256 i = count; i > 0; i--) {
             for (uint256 j = 0; j < 2**i; j += 2) {
-                hashes.push(PoseidonT3.poseidon([hashes[newCount + j], hashes[newCount + j + 1]]));
-                newCount += 2;
-                count += 1;
+                hashes.push(PoseidonT3.poseidon([hashes[calculatedIndex + j], hashes[calculatedIndex + j + 1]]));
+                calculatedIndex += 2;
             }
         }
 
