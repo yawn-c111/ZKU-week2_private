@@ -75,14 +75,14 @@ describe('Custom Tests', function () {
     // [assignment] complete code here
     const { tornadoPool, token, omniBridge } = await loadFixture(fixture)
 
-    // アリスの鍵を作成
+    // アリスのシールデッドキーペアを作成
     const aliceKeypair = new Keypair()
 
-    // アリスが0.1ETHをデポジットするUTXOを作成
     const aliceDepositAmount = utils.parseEther('0.1')
+    // アリスがデポジットするUTXOを作成、シールデッドシークレットキー等をプライベートインプットに
     const aliceDepositUtxo = new Utxo({ amount: aliceDepositAmount, keypair: aliceKeypair })
 
-    // アリスのデポジットUTXOを準備
+    // アリスのデポジットUTXOを準備（プルーフに関連するもの）
     const { args, extData } = await prepareTransaction({
       tornadoPool,
       outputs: [aliceDepositUtxo],
@@ -107,7 +107,7 @@ describe('Custom Tests', function () {
     // WETHをトルネードプールに送信するためのTxを準備
     const transferTx = await token.populateTransaction.transfer(tornadoPool.address, aliceDepositAmount)
 
-    // ブリッジで配列の内のtxを実行
+    // ブリッジを実行
     await omniBridge.execute([
       { who: token.address, callData: transferTx.data }, // ブリッジからプールにERC20をWETHを送信
       { who: tornadoPool.address, callData: onTokenBridgedTx.data }, // プールでonTokenBridgedを実行
