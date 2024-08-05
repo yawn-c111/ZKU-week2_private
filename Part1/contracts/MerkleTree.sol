@@ -16,10 +16,10 @@ contract MerkleTree is Groth16Verifier {
 
     function insertLeaf(uint256 hashedLeaf) public returns (uint256) {
         // [assignment] insert a hashed leaf into the Merkle tree
-        uint256 _index = index;
-        require(_index < 8, "Index out of bounds");
+        uint256 currentIndex = index;
+        require(currentIndex < 8, "Index out of bounds");
 
-        hashes[_index] = hashedLeaf;
+        hashes[currentIndex] = hashedLeaf;
 
         uint256 count = 8;
         uint256 newCount = 0;
@@ -31,7 +31,7 @@ contract MerkleTree is Groth16Verifier {
             }
         }
 
-        index += 1;
+        index++;
 
         return hashes[hashes.length - 1];
     }
