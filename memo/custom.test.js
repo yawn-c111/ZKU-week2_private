@@ -79,22 +79,22 @@ describe('Custom Tests', function () {
     const aliceKeypair = new Keypair()
 
     const aliceDepositAmount = utils.parseEther('0.1')
-    // アリスがデポジットするUTXOを作成、シールデッドシークレットキー等をプライベートインプットに
+    // アリスがデポジットするUTXOを作成（シールデッドシークレットキー等をプライベートインプットに）
     const aliceDepositUtxo = new Utxo({ amount: aliceDepositAmount, keypair: aliceKeypair })
 
-    // アリスのデポジットUTXOを準備（プルーフに関連するもの）
+    // アリスのデポジットUTXOのプルーフなどを準備
     const { args, extData } = await prepareTransaction({
       tornadoPool,
       outputs: [aliceDepositUtxo],
     })
 
-    // アリスのデポジットUTXOをブリッジするためのデータをエンコード
+    // アリスのデポジットUTXOのデータをエンコード
     const onTokenBridgedData = encodeDataForBridge({
       proof: args,
       extData,
     })
 
-    // アリスのL1からブリッジしてL2にデポジットするためのTxを準備
+    // アリスがL1からブリッジしてL2にデポジットするためのTxを準備
     const onTokenBridgedTx = await tornadoPool.populateTransaction.onTokenBridged(
       token.address,
       aliceDepositUtxo.amount,
@@ -107,32 +107,36 @@ describe('Custom Tests', function () {
     // WETHをトルネードプールに送信するためのTxを準備
     const transferTx = await token.populateTransaction.transfer(tornadoPool.address, aliceDepositAmount)
 
-    // ブリッジを実行
+    // ブリッジを実行し、入金
     await omniBridge.execute([
       { who: token.address, callData: transferTx.data }, // ブリッジからプールにERC20をWETHを送信
-      { who: tornadoPool.address, callData: onTokenBridgedTx.data }, // プールでonTokenBridgedを実行
+      { who: tornadoPool.address, callData: onTokenBridgedTx.data }, // プールでonTokenBridgedを実行（プルーフなどを送信）
     ])
 
     const aliceWithdrawAmount = utils.parseEther('0.08')
+    // アリスのETHアドレス
     const aliceEthAddress = '0x4F3f08c789903282803F9a00107E04d18444E94D'
 
+    // アリスの引き出しUTXOを作成
     const aliceChangeUtxo = new Utxo({
       amount: aliceDepositAmount.sub(aliceWithdrawAmount),
       keypair: aliceKeypair,
     })
 
-    // Tx実行
+    // アリスの前回と今回のUTXOを準備し、送信
     await transaction({
       tornadoPool,
-      inputs: [aliceDepositUtxo],
-      outputs: [aliceChangeUtxo],
+      inputs: [aliceDepositUtxo], // Aliceの前のUTXO（デポジット時）
+      outputs: [aliceChangeUtxo], // Aliceの今回ののUTXO（引き出し依頼）
       recipient: aliceEthAddress,
     })
 
+    // アリスのL2の残高の確認
     const aliceBalance = await token.balanceOf(aliceEthAddress)
     console.log('aliceBalance', aliceBalance.toString())
     expect(aliceBalance).to.be.equal(aliceWithdrawAmount)
 
+    // L2のトルネードプールの残高の確認
     const transactionPoolBalance = await token.balanceOf(tornadoPool.address)
     console.log('transactionPoolBalance', utils.formatEther(transactionPoolBalance))
     expect(transactionPoolBalance).to.be.equal(aliceDepositAmount.sub(aliceWithdrawAmount))
@@ -147,71 +151,74 @@ describe('Custom Tests', function () {
     // [assignment] complete code here
     const { tornadoPool, token, omniBridge } = await loadFixture(fixture)
 
-    // アリスの鍵を作成
+    // アリスのシールデッドキーペアを作成
     const aliceKeypair = new Keypair()
 
-    // アリスが0.13ETHをデポジットするUTXOを作成
     const aliceDepositAmount = utils.parseEther('0.13')
+    // アリスがデポジットするUTXOを作成
     const aliceDepositUtxo = new Utxo({ amount: aliceDepositAmount, keypair: aliceKeypair })
 
-    // アリスのデポジットUTXOを準備
+    // アリスのデポジットUTXOのプルーフなどを準備
     const { args, extData } = await prepareTransaction({
       tornadoPool,
       outputs: [aliceDepositUtxo],
     })
 
-    // アリスのデポジットUTXOをブリッジするためのデータをエンコード
+    // アリスのデポジットUTXOのデータをエンコード
     const onTokenBridgedData = encodeDataForBridge({
       proof: args,
       extData,
     })
 
-    // アリスのデポジットUTXOをブリッジするためのTxを準備
+    // アリスがL1からブリッジしてL2にデポジットするためのTxを準備
     const onTokenBridgedTx = await tornadoPool.populateTransaction.onTokenBridged(
       token.address,
       aliceDepositUtxo.amount,
       onTokenBridgedData,
     )
 
-    // WETHをオムニブリッジに送信
+    // WETHをブリッジに送信
     await token.transfer(omniBridge.address, aliceDepositAmount)
 
     // WETHをトルネードプールに送信するためのTxを準備
     const transferTx = await token.populateTransaction.transfer(tornadoPool.address, aliceDepositAmount)
 
-    // ブリッジと入金を実行
+    // ブリッジを実行し、入金
     await omniBridge.execute([
       { who: token.address, callData: transferTx.data },
       { who: tornadoPool.address, callData: onTokenBridgedTx.data },
     ])
 
-    // ボブの鍵を作成
+    // ボブのシールデッドキーペアを作成
     const bobKeypair = new Keypair()
     // ボブのシールドアドレス
     // const bobAddress = bobKeypair.address()
 
-    // アリスがボブに0.06ETHを送金
     const bobSendAmount = utils.parseEther('0.06')
+    // ボブの送金後UTXOを作成
     const bobReceiveUtxo = new Utxo({ amount: bobSendAmount, keypair: bobKeypair })
+    // アリスの送金後のUTXOを作成
     const aliceChangeUtxo1 = new Utxo({
       amount: aliceDepositAmount.sub(bobSendAmount),
       keypair: aliceKeypair,
     })
 
+    // 送金前アリスののUTXOと送金後のボブとアリスのUTXOを準備し、送信
     await transaction({
       tornadoPool,
-      inputs: [aliceDepositUtxo],
-      outputs: [bobReceiveUtxo, aliceChangeUtxo1],
+      inputs: [aliceDepositUtxo], // アリスの前のUTXO
+      outputs: [bobReceiveUtxo, aliceChangeUtxo1], // 送金後のボブのUTXOとアリスのUTXO
     })
 
+    // ボブのETHアドレス
     const bobEthAddress = '0xDeaD00000000000000000000000000000000BEEf'
-    const bobChangeUtxo = new Utxo({ amount: 0, keypair: bobKeypair })
+    const bobChangeUtxo = new Utxo({ amount: 0, keypair: bobKeypair }) // 引き出し後のボブの残高は0
 
     // ボブが全額を引き出し
     await transaction({
       tornadoPool,
-      inputs: [bobReceiveUtxo],
-      outputs: [bobChangeUtxo],
+      inputs: [bobReceiveUtxo], // ボブの前回のUTXO
+      outputs: [bobChangeUtxo], // ボブの引き出し後のUTXO
       recipient: bobEthAddress,
     })
 
@@ -219,17 +226,17 @@ describe('Custom Tests', function () {
     const aliceEthAddress = '0x4F3f08c789903282803F9a00107E04d18444E94D'
 
     const aliceChangeUtxo2 = new Utxo({
-      amount: 0,
+      amount: 0, // 引き出し後のアリスの残高は0
       keypair: aliceKeypair,
     })
 
     // アリスが残額を引き出し
     await transaction({
       tornadoPool,
-      inputs: [aliceChangeUtxo1],
-      outputs: [aliceChangeUtxo2],
+      inputs: [aliceChangeUtxo1], // アリスの前回のUTXO
+      outputs: [aliceChangeUtxo2], // アリスの引き出し後のUTXO
       recipient: aliceEthAddress,
-      isL1Withdrawal: true,
+      isL1Withdrawal: true, // L1に引き出し
     })
 
     // // 残高の確認
