@@ -12,8 +12,8 @@ contract MerkleTree is Groth16Verifier {
 
     constructor() {
         // [assignment] initialize a Merkle tree of 8 with blank leaves
-        uint256 maxLeaf = 2**n;
-        for (uint256 i = 0; i < maxLeaf; i++) {
+        uint256 numOfMerklePaths = 2**(n+1);
+        for (uint256 i = 0; i < numOfMerklePaths; i++) {
             hashes.push(0);
         }
     }
@@ -29,13 +29,15 @@ contract MerkleTree is Groth16Verifier {
         // 新しい葉を追加
         hashes[currentIndex] = hashedLeaf;
 
+        uint256 count = maxLeaf;
         uint256 calculatedIndex = 0;
         // 葉の深さが1になるまで各ブランチでハッシュを計算
-        uint256 count = n - 1;
-        for (uint256 i = count; i > 0; i--) {
+        uint256 currentLevel = n - 1;
+        for (uint256 i = currentLevel; i > 0; i--) {
             for (uint256 j = 0; j < 2**i; j += 2) {
-                hashes.push(PoseidonT3.poseidon([hashes[calculatedIndex + j], hashes[calculatedIndex + j + 1]]));
+                hashes[count] = PoseidonT3.poseidon([hashes[calculatedIndex + j], hashes[calculatedIndex + j + 1]]);
                 calculatedIndex += 2;
+                count++;
             }
         }
 
